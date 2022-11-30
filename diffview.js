@@ -423,11 +423,13 @@ diffview = {
         //establish inserts in a row
         let inserts = 1;
 
-        // lookahead, are there any other inserts immediately after, if so - how many?
-        while(diffOutputBase[index+inserts].status === "insert") {
-          wordLengths[inserts] = diffOutputNew[index+inserts].text.length;
-          totalWordLength += wordLengths[inserts];
-          inserts++;
+        if (index+inserts < diffOutputBase.length - 1){
+          // lookahead, are there any other inserts immediately after, if so - how many?
+          while(diffOutputBase[index+inserts].status === "insert") {
+            wordLengths[inserts] = diffOutputNew[index+inserts].text.length;
+            totalWordLength += wordLengths[inserts];
+            inserts++;
+          }
         }
 
         let endTime = null;
@@ -443,20 +445,52 @@ diffview = {
 
         // loop through the inserts again and push the text and new calculated time
 
-        while(diffOutputBase[index+counter].status === "insert") {
-          if (realigned.length > 0) { // previously aligned word exists
-            let lastRealigned = realigned[realigned.length - 1];
-            lastEndTime = lastRealigned.time + lastRealigned.duration;
-            gap = (endTime - startTime);
-          } else { // previously aligned word does not exist 
-            lastEndTime = boundaryStart;
-            gap = diffOutputBase[0].start - boundaryStart;
+        if (index+inserts < diffOutputBase.length - 1){
+          while(diffOutputBase[index+counter].status === "insert") {
+            if (realigned.length > 0) { // previously aligned word exists
+              let lastRealigned = realigned[realigned.length - 1];
+              lastEndTime = lastRealigned.time + lastRealigned.duration;
+              gap = (endTime - startTime);
+            } else { // previously aligned word does not exist 
+              lastEndTime = boundaryStart;
+              gap = diffOutputBase[0].start - boundaryStart;
+            }
+            counter++; 
+            let timePerLetter = gap/totalWordLength;
+            console.log("timePerLetter = "+timePerLetter);
+            let wordLength = wordLengths[counter-1];
+            realigned.push({'text': diffOutputNew[index+counter-1].text, 'time': lastEndTime+1, 'duration': Math.floor((timePerLetter)*wordLength)-2});
           }
-          counter++; 
+        } else { // this means words were added to the end
+          // figure out how many 
+          let wordsAddedToEnd = diffOutputBase.length - deleted - realigned.length;
+          console.log("wordsAddedToEnd = "+wordsAddedToEnd);
+
+          wordLengths = [];
+          totalWordLength = 0;
+
+          for (let idx = 0; idx < wordsAddedToEnd; idx++){
+            wordLengths[idx] = diffOutputNew[index+idx].text.length;
+            totalWordLength += wordLengths[idx];
+          }
+
+          let lastRealigned = realigned[realigned.length - 1];
+          lastEndTime = lastRealigned.time + lastRealigned.duration;
+
+          gap = boundaryEnd - lastEndTime;
+          console.log("gap = "+gap);
+          console.log(wordLengths);
           let timePerLetter = gap/totalWordLength;
-          console.log("timePerLetter = "+timePerLetter);
-          let wordLength = wordLengths[counter-1];
-          realigned.push({'text': diffOutputNew[index+counter-1].text, 'time': lastEndTime+1, 'duration': Math.floor((timePerLetter)*wordLength)-2});
+
+          for (let idx = 0; idx < wordsAddedToEnd; idx++){
+            realigned.push({'text': diffOutputNew[index+idx].text, 'time': lastEndTime+1, 'duration': Math.floor((timePerLetter)*wordLengths[idx])-1});
+            lastEndTime = lastEndTime+1 + Math.floor((timePerLetter)*wordLengths[idx])-2;
+          }
+
+          /*for (let idx = 0; idx < wordsAddedToEnd; idx++){
+            wordLengths[idx] = diffOutputNew[index+idx].text.length;
+            totalWordLength += wordLengths[idx];
+          }*/
         }
         totalInserts += inserts;
       }
