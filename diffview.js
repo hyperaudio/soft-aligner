@@ -46,6 +46,8 @@ diffview = {
 	 * - viewType: if 0, a side-by-side diff view is generated (default); if 1, an inline diff view is
 	 *	   generated
 	 */
+
+  
 	buildView: function (params) {
 		replaced = 0; inserted = 0; deleted = 0; matched = 0;
 		var baseTextLines = params.baseTextLines;
@@ -62,6 +64,44 @@ diffview = {
 
     inline = 0;
 
+    console.log(baseTextLines);
+    console.log(newTextLines);
+
+    function sanitise(str) {
+      let punctuationless = str.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+      let finalString = punctuationless.replace(/\s{2,}/g," ");
+      return (finalString.toLowerCase());
+      //return (str.replace(/ /g, "\n").replace(/\./g, "").replace(/,/g, "").replace(/’/g, "'").replace(/“/g, "").replace(/’/g, "”").toLowerCase());
+    }
+
+    if (params.pass === true) {
+
+      baseTextLines = [];
+      document.getElementById('baseText').value = "";
+
+      params.baseObject.forEach(word => {
+        baseTextLines.push(sanitise(word.text));
+        document.getElementById('baseText').value += word.text + " ";
+      });
+      document.getElementById('baseText').value = document.getElementById('baseText').value.trim();
+
+
+      newTextLines = params.newText.split(' ');
+
+      console.log("#########");
+    
+      newTextLines.forEach((word, index) => {
+        newTextLines[index] = sanitise(word);
+        console.log(sanitise(word));
+      });
+
+      document.getElementById('newText').value = params.newText;
+
+      console.log(baseTextLines);
+      console.log(newTextLines);
+
+    } 
+
 
     //console.log(">>>>>>>>>>>>inline = "+inline);
 
@@ -72,7 +112,7 @@ diffview = {
 		if (newTextLines == null)
 			throw "Cannot build diff view; newTextLines is not defined.";
 		if (!opcodes)
-			throw "Canno build diff view; opcodes is not defined.";
+			throw "Cannot build diff view; opcodes is not defined.";
 
 		function celt (name, clazz) {
 			var e = document.createElement(name);
@@ -133,6 +173,10 @@ diffview = {
 
       let wordText = "";
       if (tidx < tend) {
+        console.log("tidx = "+tidx);
+        console.log("tend = "+tend);
+        console.log("*******");
+        console.log(textLines);
         wordText = textLines[tidx].replace(/\t/g, "\u00a0\u00a0\u00a0\u00a0");
       }
     
@@ -140,16 +184,30 @@ diffview = {
 
       diffOutput.push(wordObj);
       
-      if (diffColumn === "base") {
-        wordObj.start = startTimings[tidx];
-        wordObj.end = endTimings[tidx];
-        wordObj.duration = durations[tidx];
-        diffOutputBase.push(wordObj);
-        diffColumn = "new";
+      if (params.pass === true) {
+        if (diffColumn === "base") {
+          wordObj.start = params.baseObject[tidx].start;
+          wordObj.end = params.baseObject[tidx].end;
+          wordObj.duration = params.baseObject[tidx].end - params.baseObject[tidx].start;
+          diffOutputBase.push(wordObj);
+          diffColumn = "new";
+        } else {
+          diffOutputNew.push(wordObj);
+          diffColumn = "base";
+        }
       } else {
-        diffOutputNew.push(wordObj);
-        diffColumn = "base";
+        if (diffColumn === "base") {
+          wordObj.start = startTimings[tidx];
+          wordObj.end = endTimings[tidx];
+          wordObj.duration = durations[tidx];
+          diffOutputBase.push(wordObj);
+          diffColumn = "new";
+        } else {
+          diffOutputNew.push(wordObj);
+          diffColumn = "base";
+        }
       }
+      
 
 			if (tidx < tend) {
 				row.appendChild(telt("th", (tidx + 1).toString()));
@@ -280,6 +338,11 @@ diffview = {
     let totalInserts = 0;
     let realigned = [];
 
+    if (params.pass === true) {
+      boundaryStart = params.boundaryStart;
+      boundaryEnd = params.boundaryEnd;
+    }
+
     console.log("----------------------");
 
     diffOutputBase.forEach((out, index) => {
@@ -306,7 +369,7 @@ diffview = {
     
         // lookahead, are there any other replacements immediately after, if so - how many?
       
-        while(diffOutputBase[index+replacements].status === "replace") {
+        while(diffOutputBase[index+replacements] != undefined && diffOutputBase[index+replacements].status === "replace") {
           wordLengths[replacements] = diffOutputNew[index+replacements].text.length;
           totalWordLength += wordLengths[replacements];
           replacements++;
@@ -315,13 +378,15 @@ diffview = {
         // check the next non-replacement and grab its time to calculate increments for the replacements
         if (diffOutputBase[index+replacements]) {
           endTime = diffOutputBase[index+replacements].start;
+        } else { // CHECK THIS!
+          endTime = boundaryEnd;
         }
 
         let counter = 0;
         let lastEndTime = null;
 
         // loop through the replacements again and push the text and new calculated time
-        while(diffOutputBase[index+counter].status === "replace") {
+        while(diffOutputBase[index+counter] !== undefined && diffOutputBase[index+counter].status === "replace") {
           if (realigned.length > 0) { // previously aligned word exists
             let lastRealigned = realigned[realigned.length - 1];
             lastEndTime = lastRealigned.start + lastRealigned.duration;
@@ -474,6 +539,8 @@ diffview = {
 
     ////console.log(node);
 
-		return node;
+    let returnData = {data: realigned, debug: node};
+
+		return returnData;
 	} 
 };

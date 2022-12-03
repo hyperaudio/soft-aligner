@@ -4,7 +4,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
-	<title>jsdifflib demo</title>
+	<title>Soft Align Demo</title>
 	<link rel="stylesheet" type="text/css" href="diffview.css"/>
 	<script type="text/javascript" src="diffview.js"></script>
 	<script type="text/javascript" src="difflib.js"></script>
@@ -50,6 +50,8 @@ label:hover {
 <script type="text/javascript">
 
 function sanitise(str) {
+  console.log(str);
+  console.log(str.replace(/ /g, "\n").replace(/\./g, "").replace(/,/g, "").replace(/’/g, "'").replace(/“/g, "").replace(/’/g, "”").toLowerCase());
 	return (str.replace(/ /g, "\n").replace(/\./g, "").replace(/,/g, "").replace(/’/g, "'").replace(/“/g, "").replace(/’/g, "”").toLowerCase());
 }
 
@@ -77,13 +79,45 @@ function diffUsingJS(viewType) {
 		newTextName: "New Text",
 		contextSize: contextSize,
 		viewType: viewType
-	}));
+	}).debug);
+}
+
+function passData() {
+
+  var byId = function (id) { return document.getElementById(id); },
+		base = difflib.stringAsLines(sanitise(byId("baseText").value)),
+		newtxt = difflib.stringAsLines(sanitise(byId("newText").value)),
+		sm = new difflib.SequenceMatcher(base, newtxt),
+		opcodes = sm.get_opcodes(),
+		diffoutputdiv = byId("diffoutput"),
+		contextSize = byId("contextSize").value;
+
+
+  //console.dir(sm);
+
+	diffoutputdiv.innerHTML = "";
+	contextSize = contextSize || null;
+
+  document.getElementById('diffoutput').appendChild(diffview.buildView({
+		baseTextLines: base,
+		newTextLines: newtxt,
+		opcodes: opcodes,
+		baseTextName: "Base Text",
+		newTextName: "New Text",
+		contextSize: contextSize,
+		viewType: 0,
+    pass: true,
+    baseObject : [{text: "I", start: 10000, end: 10500},{text: "am", start: 11000, end: 11500},{text: "a", start: 12000, end: 12500},{text: "mole", start: 13000, end: 13500},{text: "and", start: 14000, end: 14500},{text: "I", start: 15000, end: 15500},{text: "live", start: 16000, end: 16500}, {text: "in", start: 17000, end: 17500}, {text: "a", start: 18000, end: 18500}, {text: "hole", start: 19000, end: 19500}],
+    newText: "Hey, I am a fat mole and I like to live in a hole!",
+    boundaryStart: 9000,
+    boundaryEnd: 20000
+	}).debug);
+  return false;
 }
 
 </script>
 </head>
 <body>
-	<h1 class="top"><a href="http://github.com/cemerick/jsdifflib">jsdifflib</a> demo</h1>
 	<div class="top">
 		<strong>Context size (optional):</strong> <input type="text" id="contextSize" value="" />
 	</div>
@@ -102,5 +136,6 @@ function diffUsingJS(viewType) {
 	</div>
 	<div>Matched : <span id="matched"></span></div><div style="background-color: #9E9">Inserted : <span id="inserted"></span></div><div style="background-color: #FD8">Replaced : <span id="replaced"></span></div><div style="background-color: #E99">Deleted : <span id="deleted"></span></div>
 	<div id="diffoutput"> </div>
+  <button id="pass-data" onclick="passData()">Pass data</button>
 </body>
 </html>
