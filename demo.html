@@ -50,8 +50,6 @@ label:hover {
 <script type="text/javascript">
 
 function sanitise(str) {
-  console.log(str);
-  console.log(str.replace(/ /g, "\n").replace(/\./g, "").replace(/,/g, "").replace(/’/g, "'").replace(/“/g, "").replace(/’/g, "”").toLowerCase());
 	return (str.replace(/ /g, "\n").replace(/\./g, "").replace(/,/g, "").replace(/’/g, "'").replace(/“/g, "").replace(/’/g, "”").toLowerCase());
 }
 
@@ -97,6 +95,7 @@ function passData() {
 
 	diffoutputdiv.innerHTML = "";
 	contextSize = contextSize || null;
+  
 
   document.getElementById('diffoutput').appendChild(diffview.buildView({
 		baseTextLines: base,
