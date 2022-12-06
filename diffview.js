@@ -416,17 +416,12 @@ diffview = {
           replacements++;
         }
 
-        console.log("replaceGaps = "+replaceGaps);
-
-        console.log("wordLengths.length");
-        console.log(wordLengths.length);
-
-        console.log("replacements = "+replacements);
-
-
         if (replaceGaps === 0) { // same number or replacements in base as new so maintain timings (ie no gaps in base)
           for (let i = 0; i < replacements; i++) {
-            realigned.push({'text': diffOutputNew[index+i].text, 'start': diffOutputBase[index+i].start, 'duration': diffOutputBase[index+i].duration, 'end': diffOutputBase[index+i].end});
+            console.log("here");
+            if (diffOutputNew[index+i].text.length > 0){
+              realigned.push({'text': diffOutputNew[index+i].text, 'start': diffOutputBase[index+i].start, 'duration': diffOutputBase[index+i].duration, 'end': diffOutputBase[index+i].end});
+            }
           }
         } else {
           // check the next non-replacement and grab its time to calculate increments for the replacements
@@ -471,16 +466,20 @@ diffview = {
               if (replacements > 1) {
                 replacementDuration = Math.floor((timePerChar)*wordLength)-1;
               }
-
-              realigned.push({'text': diffOutputNew[index+counter-1].text, 'start': out.start, 'duration': replacementDuration, 'end': out.start + replacementDuration});
+              console.log(diffOutputNew[index+counter-1].text);
+              if (diffOutputNew[index+counter-1].text.length > 0){
+                realigned.push({'text': diffOutputNew[index+counter-1].text, 'start': out.start, 'duration': replacementDuration, 'end': out.start + replacementDuration});
+              }
+              
             } else { // subsequent pushes should use lastEndTime + duration
-              realigned.push({'text': diffOutputNew[index+counter-1].text, 'start': lastEndTime+1, 'duration': Math.floor((timePerChar)*wordLength)-1, 'end':lastEndTime + Math.floor((timePerChar)*wordLength)});
+              console.log(diffOutputNew[index+counter-1].text);
+              if (diffOutputNew[index+counter-1].text.length > 0){
+                realigned.push({'text': diffOutputNew[index+counter-1].text, 'start': lastEndTime+1, 'duration': Math.floor((timePerChar)*wordLength)-1, 'end':lastEndTime + Math.floor((timePerChar)*wordLength)});
+              }
             }
           }
         }
         
-        
-
         totalInserts += (replacements - 1);
       }
 
