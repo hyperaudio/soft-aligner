@@ -23,7 +23,56 @@ function sanitise(str) {
   return (str.replace(/ /g, "\n").replace(/\./g, "").replace(/,/g, "").replace(/’/g, "'").replace(/“/g, "").replace(/’/g, "”").toLowerCase());
 }
 
-test("Test 1 - Hey, I am a fat mole and I like to live in a hole! --> Hey, I am a fat mole and I like to live in a hole!", () => {
+test("Test 1 - one two three --> four two six", () => {
+
+  const baseObj = [{text: "one", start: 1000, end: 1501},{text: "two", start: 2000, end: 2502},{text: "three", start: 3000, end: 3503}];
+
+  const newTxt = "four two six";
+  const baseTxt = createBaseText(baseObj);
+
+  const newTxtInput = difflib.stringAsLines(sanitise(newTxt));
+  const baseTxtInput = difflib.stringAsLines(sanitise(baseTxt));
+  
+  const input = {
+    baseTextLines: baseTxtInput,
+    newTextLines: newTxtInput,
+    opcodes: new difflib.SequenceMatcher(baseTxtInput, newTxtInput).get_opcodes(),
+    baseTextName: "Test Base Text",
+    newTextName: "Test New Text",
+    contextSize: "",
+    viewType: 0,
+    pass: true,
+    baseObject : baseObj,
+    newText: newTxt,
+    boundaryStart: 9000,
+    boundaryEnd: 20000
+  };
+
+  const expected = [
+    {
+      "text": "four",
+      "start": 1000,
+      "duration": 501,
+      "end": 1501
+    },
+    {
+      "text": "two",
+      "start": 2000,
+      "duration": 502,
+      "end": 2502
+    },
+    {
+      "text": "six",
+      "start": 3000,
+      "duration": 503,
+      "end": 3503
+    }
+  ];
+
+  expect(diffview.buildView(input).data).toStrictEqual(expected);
+});
+
+test("Test 2 - Hey, I am a fat mole and I like to live in a hole! --> Hey, I am a fat mole and I like to live in a hole!", () => {
 
   const baseObj = [{text: "I", start: 10000, end: 10500},{text: "am", start: 11000, end: 11500},{text: "a", start: 12000, end: 12500},{text: "mole", start: 13000, end: 13500},{text: "and", start: 14000, end: 14500},{text: "I", start: 15000, end: 15500},{text: "live", start: 16000, end: 16500}, {text: "in", start: 17000, end: 17500}, {text: "a", start: 18000, end: 18500}, {text: "hole", start: 19000, end: 19500}];
 
@@ -138,7 +187,7 @@ test("Test 1 - Hey, I am a fat mole and I like to live in a hole! --> Hey, I am 
   expect(diffview.buildView(input).data).toStrictEqual(expected);
 });
 
-test("Test 2 - The big red green brown fox jumped over the rolling log. --> ok The brown spotted a snow fox leaped high over the fat rolling chocolate log slice.", () => {
+test("Test 3 - The big red green brown fox jumped over the rolling log. --> ok The brown spotted a snow fox leaped high over the fat rolling chocolate log slice.", () => {
 
   const baseObj = [{text: "The", start: 1000, end: 1501},{text: "big", start: 2000, end: 2502},{text: "red", start: 3000, end: 3503},{text: "green", start: 4000, end: 4504},{text: "brown", start: 5000, end: 5505},{text: "fox", start: 6000, end: 6506},{text: "jumped", start: 7000, end: 7507}, {text: "over", start: 8000, end: 8508}, {text: "the", start: 9000, end: 9509}, {text: "rolling", start: 10000, end: 10510}, {text: "log", start: 11000, end: 11511}];
 

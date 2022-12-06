@@ -58,12 +58,23 @@ diffview = {
 		var contextSize = params.contextSize;
 		var inline = (params.viewType == 0 || params.viewType == 1) ? params.viewType : 0;
 
-    let startTimings = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000];
-    let endTimings = [1501, 2502, 3503, 4504, 5505, 6506, 7507, 8508, 9509, 10510, 11511];
-    let durations = [501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511];
+    let startTimings = [];
+    let endTimings = [];
+    let durations = [];
 
     inline = 0;
 
+    // for visual testing, automatically generate plausaible timings
+    params.baseTextLines.forEach((word, index) => {
+      startTimings.push((index+1)*1000); //[1000, 2000, 3000, 4000, 5000, 6000...]
+      endTimings.push(startTimings[index]+500+index+1); //[1501, 2502, 3503, 4504, 5505, 6506...]
+      durations.push(endTimings[index]-startTimings[index]); // [501, 502, 503, 504, 505, 506...]
+    });
+
+    let boundaryStart = 30;
+    let boundaryEnd = endTimings[params.baseTextLines.length]+3000;
+    console.log(startTimings);
+    console.log(endTimings);
 
     function sanitise(str) {
       let punctuationless = str.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
@@ -79,8 +90,6 @@ diffview = {
 
       baseTextLines = [];
       //document.getElementById('baseText').value = "";
-
-      
 
       params.baseObject.forEach(word => {
         baseTextLines.push(sanitise(word.text));
@@ -355,8 +364,7 @@ diffview = {
       });
     }
 
-    let boundaryStart = 30;
-    let boundaryEnd = 13000;
+
 
     let lastStatus = null;
     let totalInserts = 0;
