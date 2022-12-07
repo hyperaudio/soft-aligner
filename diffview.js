@@ -72,7 +72,10 @@ diffview = {
     });
 
     let boundaryStart = 30;
-    let boundaryEnd = endTimings[params.baseTextLines.length]+3000;
+    let boundaryEnd = endTimings[params.baseTextLines.length-1]+3000;
+    console.log(endTimings);
+    console.log(params.baseTextLines);
+    console.log(boundaryEnd);
     //console.log(startTimings);
     //console.log(endTimings);
 
@@ -390,10 +393,6 @@ diffview = {
         let wordLengths = [];
         let totalWordLength = 0;
 
-        /*console.log("***********")
-        console.log(diffOutputNew[index].text);
-        console.log("***********");*/
-
         // we have two entries for each "row" – the old and the new
         wordLengths[0] = diffOutputNew[index].text.length; 
         totalWordLength += wordLengths[0];
@@ -401,8 +400,6 @@ diffview = {
         let startTime = out.start;
         let replacements = 1;
         let replaceGaps = 0;
-
-
     
         // lookahead, are there any other replacements immediately after, if so - how many?
       
@@ -418,7 +415,6 @@ diffview = {
 
         if (replaceGaps === 0) { // same number or replacements in base as new so maintain timings (ie no gaps in base)
           for (let i = 0; i < replacements; i++) {
-            console.log("here");
             if (diffOutputNew[index+i].text.length > 0){
               realigned.push({'text': diffOutputNew[index+i].text, 'start': diffOutputBase[index+i].start, 'duration': diffOutputBase[index+i].duration, 'end': diffOutputBase[index+i].end});
             }
@@ -427,59 +423,74 @@ diffview = {
           // check the next non-replacement and grab its time to calculate increments for the replacements
           if (diffOutputBase[index+replacements]) {
             endTime = diffOutputBase[index+replacements].start;
-          } else { // CHECK THIS!
-            // first check if the index of replaced text goes outside the bounds of the original
-            console.log(index + replacements);
-            console.log(diffOutputBase.length);
+          } else { 
             // check whether the inserts are the last n items are the last items in base
-            if (index + replacements === diffOutputBase.length) {
+            if (index + replacements + replaceGaps === diffOutputBase.length) {
+              console.log("last elements");
               endTime = diffOutputBase[index+replacements-1].end;
-              
-              console.log("hit the end");
-              console.log(endTime);
             } else {
-              console.log("assigning boundaryEnd to endTime");
+              console.log("boundaryEnd = "+boundaryEnd);
               endTime = boundaryEnd;
             }
           }
+
+          console.log("endTime = "+endTime);
+
           let counter = 0;
           let lastEndTime = null;
-
-          // loop through the replacements again and push the text and new calculated time
-          while(diffOutputBase[index+counter] !== undefined && diffOutputBase[index+counter].status === "replace") {
-            if (realigned.length > 0) { // previously aligned word exists
-              let lastRealigned = realigned[realigned.length - 1];
-              lastEndTime = lastRealigned.start + lastRealigned.duration;
-              gap = (endTime - startTime);
-            } else { // previously aligned word does not exist 
-              lastEndTime = boundaryStart;
-              gap = diffOutputBase[0].start - boundaryStart;
-            }
-            counter++; 
-            let timePerChar = gap/totalWordLength;
-            let wordLength = wordLengths[counter-1];
           
-            if (counter === 1) { // a counter of 1 means we're at the first replacement which starts from next startTime
-              // duration should be that of replaced word when there is only one replacement
-              let replacementDuration = durations[diffOutputBase[index].tidx];
-              // if there's more than one replacement word we need to calculate
-              if (replacements > 1) {
-                replacementDuration = Math.floor((timePerChar)*wordLength)-1;
+
+          // check to see if all text is being replaced
+          if (replacements === diffOutputBase.length) {
+            // special case for all text being replaced
+            gap = boundaryEnd - boundaryStart;
+            let lastStartTime = boundaryStart;
+            let timePerChar = gap/totalWordLength;
+
+            // spread the words according to length within the gap available
+            diffOutputNew.forEach((word, index) => {
+              let replacementDuration = Math.floor((timePerChar)*wordLengths[index])-1;
+              realigned.push({'text': word.text, 'start': lastStartTime, 'duration': replacementDuration , 'end': lastStartTime + replacementDuration});
+              lastStartTime = lastStartTime + replacementDuration + 1;
+            });
+          }
+          else // loop through the replacements again and push the text and new calculated time
+          {
+            while(diffOutputBase[index+counter] !== undefined && diffOutputBase[index+counter].status === "replace") {
+
+              if (realigned.length > 0) { // a previously aligned word exists
+                let lastRealigned = realigned[realigned.length - 1];
+                lastEndTime = lastRealigned.start + lastRealigned.duration;
+                gap = (endTime - startTime);
+              } else { // a previously aligned word does not exist 
+                lastEndTime = boundaryStart;
+                gap = diffOutputBase[0].start - boundaryStart;
               }
-              console.log(diffOutputNew[index+counter-1].text);
-              if (diffOutputNew[index+counter-1].text.length > 0){
-                realigned.push({'text': diffOutputNew[index+counter-1].text, 'start': out.start, 'duration': replacementDuration, 'end': out.start + replacementDuration});
-              }
-              
-            } else { // subsequent pushes should use lastEndTime + duration
-              console.log(diffOutputNew[index+counter-1].text);
-              if (diffOutputNew[index+counter-1].text.length > 0){
-                realigned.push({'text': diffOutputNew[index+counter-1].text, 'start': lastEndTime+1, 'duration': Math.floor((timePerChar)*wordLength)-1, 'end':lastEndTime + Math.floor((timePerChar)*wordLength)});
+
+              counter++; 
+              let timePerChar = gap/totalWordLength;
+              let wordLength = wordLengths[counter-1];
+            
+              if (counter === 1) { // a counter of 1 means we're at the first replacement which starts from next startTime
+                // duration should be that of replaced word when there is only one replacement
+                let replacementDuration = out.duration;
+                // if there's more than one replacement word we need to calculate
+                if (replacements > 1) {
+                  replacementDuration = Math.floor((timePerChar)*wordLength)-1;
+                }
+                console.log(diffOutputNew[index+counter-1].text);
+                if (diffOutputNew[index+counter-1].text.length > 0){
+                  realigned.push({'text': diffOutputNew[index+counter-1].text, 'start': out.start, 'duration': replacementDuration, 'end': out.start + replacementDuration});
+                }
+              } else { // subsequent pushes should use lastEndTime + duration
+                console.log(diffOutputNew[index+counter-1].text);
+                if (diffOutputNew[index+counter-1].text.length > 0){
+                  realigned.push({'text': diffOutputNew[index+counter-1].text, 'start': lastEndTime+1, 'duration': Math.floor((timePerChar)*wordLength)-1, 'end':lastEndTime + Math.floor((timePerChar)*wordLength)});
+                }
               }
             }
           }
         }
-        
         totalInserts += (replacements - 1);
       }
 
