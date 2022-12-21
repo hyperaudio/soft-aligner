@@ -399,7 +399,8 @@ diffview = {
 
         let startTime = out.start;
         let replacements = 1;
-        let replaceGaps = 0;
+        let replaceGapsBase = 0;
+        let replaceGapsNew = 0;
     
         // lookahead, are there any other replacements immediately after, if so - how many?
       
@@ -408,12 +409,20 @@ diffview = {
           totalWordLength += wordLengths[replacements];
           // if diffOutputBase replacements include those with blank text we should record that for later
           if (diffOutputBase[index+replacements].text.length === 0) {
-            replaceGaps++;
+            replaceGapsBase++;
           }
-          replacements++;
+
+          if (wordLengths[replacements] === 0){
+            replaceGapsNew++;
+          }
+          
+          replacements++; 
         }
 
-        if (replaceGaps === 0) { // same number or replacements in base as new so maintain timings (ie no gaps in base)
+        console.log(wordLengths);
+        console.log(replaceGapsNew);
+
+        if (replaceGapsBase === 0 && replaceGapsNew === 0) { // same number or replacements in base as new so maintain timings (ie no gaps in base)
           for (let i = 0; i < replacements; i++) {
             if (diffOutputNew[index+i].text.length > 0){
               realigned.push({'text': diffOutputNew[index+i].text, 'start': diffOutputBase[index+i].start, 'duration': diffOutputBase[index+i].duration, 'end': diffOutputBase[index+i].end});
@@ -425,21 +434,16 @@ diffview = {
             endTime = diffOutputBase[index+replacements].start;
           } else { 
             // check whether the inserts are the last n items are the last items in base
-            if (index + replacements + replaceGaps === diffOutputBase.length) {
-              console.log("last elements");
+            if (index + replacements + replaceGapsBase === diffOutputBase.length) {
               endTime = diffOutputBase[index+replacements-1].end;
             } else {
-              console.log("boundaryEnd = "+boundaryEnd);
               endTime = boundaryEnd;
             }
           }
 
-          console.log("endTime = "+endTime);
-
           let counter = 0;
           let lastEndTime = null;
           
-
           // check to see if all text is being replaced
           if (replacements === diffOutputBase.length) {
             // special case for all text being replaced
@@ -450,8 +454,10 @@ diffview = {
             // spread the words according to length within the gap available
             diffOutputNew.forEach((word, index) => {
               let replacementDuration = Math.floor((timePerChar)*wordLengths[index])-1;
-              realigned.push({'text': word.text, 'start': lastStartTime, 'duration': replacementDuration , 'end': lastStartTime + replacementDuration});
-              lastStartTime = lastStartTime + replacementDuration + 1;
+              if (word.text.length > 0){
+                realigned.push({'text': word.text, 'start': lastStartTime, 'duration': replacementDuration , 'end': lastStartTime + replacementDuration});
+                lastStartTime = lastStartTime + replacementDuration + 1;
+              }
             });
           }
           else // loop through the replacements again and push the text and new calculated time
