@@ -620,7 +620,98 @@ diffview = {
     let returnData = {data: realigned, debug: node};
 
 		return returnData;
-	} 
+	},
+
+  alignTranscript: function(baseObj, newTxt) {
+    const words = newTxt.toLowerCase().split(/\s+/);
+    const result = [];
+    let baseIndex = 0;
+    let totalDuration = 0;
+  
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      let matchFound = false;
+  
+      // Look for an exact match or a partial match
+      for (let j = baseIndex; j < baseObj.length; j++) {
+        if (baseObj[j].text.toLowerCase() === word) {
+          result.push({
+            text: word,
+            start: baseObj[j].start,
+            duration: baseObj[j].end - baseObj[j].start,
+            end: baseObj[j].end
+          });
+          baseIndex = j + 1;
+          matchFound = true;
+          break;
+        } else if (baseObj[j].text.toLowerCase().includes(word) || word.includes(baseObj[j].text.toLowerCase())) {
+          // Partial match, use the timing of the partially matched word
+          result.push({
+            text: word,
+            start: baseObj[j].start,
+            duration: baseObj[j].end - baseObj[j].start,
+            end: baseObj[j].end
+          });
+          baseIndex = j + 1;
+          matchFound = true;
+          break;
+        }
+      }
+  
+      // If no match found, estimate timing
+      if (!matchFound) {
+        let start, end, duration;
+  
+        if (result.length > 0) {
+          const lastWord = result[result.length - 1];
+          start = lastWord.end + 1;
+        } else if (baseObj.length > 0) {
+          start = baseObj[0].start - 1000 > 0 ? baseObj[0].start - 1000 : 30;
+        } else {
+          start = 30;
+        }
+  
+        if (baseIndex < baseObj.length) {
+          end = baseObj[baseIndex].start - 1;
+        } else if (result.length > 0) {
+          const lastWord = result[result.length - 1];
+          end = lastWord.end + 1000;
+        } else {
+          end = start + 1000;
+        }
+  
+        duration = end - start;
+  
+        // Adjust duration based on word length
+        const averageCharDuration = 100; // Assuming 100ms per character as a rough estimate
+        const estimatedDuration = word.length * averageCharDuration;
+        if (estimatedDuration < duration) {
+          duration = estimatedDuration;
+          end = start + duration;
+        }
+  
+        result.push({ text: word, start, duration, end });
+      }
+  
+      totalDuration += result[result.length - 1].duration;
+    }
+  
+    // Adjust timings if total duration has changed significantly
+    const originalDuration = baseObj[baseObj.length - 1].end - baseObj[0].start;
+    const durationRatio = originalDuration / totalDuration;
+  
+    if (durationRatio < 0.9 || durationRatio > 1.1) {
+      let currentStart = baseObj[0].start;
+      for (let i = 0; i < result.length; i++) {
+        result[i].start = currentStart;
+        result[i].duration = Math.round(result[i].duration * durationRatio);
+        result[i].end = currentStart + result[i].duration;
+        currentStart = result[i].end + 1;
+      }
+    }
+  
+    return result;
+  }
 };
 
 // required for testing

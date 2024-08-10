@@ -4,7 +4,7 @@
  */
 
 const { test } = require("@jest/globals");
-const { softalign } = require("../softalign");
+const { diffView } = require("../diffview");
 
 
 test("Test 1 - one two three --> four two six", () => {
@@ -34,5 +34,5 @@ test("Test 1 - one two three --> four two six", () => {
     }
   ];
 
-  expect(softalign.alignTranscript(baseObj, newTxt)).toStrictEqual(expected);
+  expect(alignTranscript(baseObj, newTxt).toStrictEqual(expected));
 });
